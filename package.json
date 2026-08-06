@@ -1,0 +1,52 @@
+{
+  "name": "open-crucible-protocol",
+  "version": "1.0.0",
+  "description": "A dependency-free engine for the Crucible Protocol: a structured, asynchronous, version-controlled debate format in which evidence and argument quality decide the outcome.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "./src/index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./gate": "./src/gate/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "index.d.ts",
+    "SPEC.md",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/",
+    "example": "node examples/sample-debate.js"
+  },
+  "keywords": [
+    "debate",
+    "argumentation",
+    "deliberation",
+    "toulmin",
+    "evidence",
+    "epistemics",
+    "moderation",
+    "protocol",
+    "collective-intelligence"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cnyako/open-crucible-protocol.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cnyako/open-crucible-protocol/issues"
+  },
+  "homepage": "https://github.com/cnyako/open-crucible-protocol#readme"
+}

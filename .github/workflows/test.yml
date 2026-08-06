@@ -1,0 +1,45 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    name: node ${{ matrix.node }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Verify there are no dependencies
+        run: |
+          node -e "
+            const pkg = require('./package.json');
+            const deps = Object.keys(pkg.dependencies || {});
+            if (deps.length) { console.error('unexpected dependencies:', deps); process.exit(1); }
+            console.log('no runtime dependencies');
+          "
+
+      - name: Run tests
+        run: node --test
+
+      - name: Run the worked example
+        run: node examples/sample-debate.js
+
+      - name: Check that no em dash entered the source or docs
+        run: |
+          if grep -rlP '\x{2014}' --include='*.js' --include='*.md' --include='*.ts' --include='*.json' .; then
+            echo "Files above contain an em dash. See CONTRIBUTING.md."
+            exit 1
+          fi
+          echo "clean"
