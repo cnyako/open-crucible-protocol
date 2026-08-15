@@ -60,6 +60,8 @@ export interface LedgerRow {
   versionId: string; versionNum: number; assertion: string;
   type: ClaimType; qualifier: Qualifier;
   E: number; R: number; S: number; Q: number; dismissed: number; merit: number;
+  /** False on rows parked outside the claim budget. Absent on pre-1.1 rows, which all score. */
+  scoring?: boolean;
 }
 
 export interface Ledger { rows: LedgerRow[]; totals: { A: number; B: number } }
