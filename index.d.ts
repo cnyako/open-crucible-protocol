@@ -196,8 +196,8 @@ export function versionMerit(d: Pick<Debate, 'challenges'>, v: ClaimVersion): {
 };
 export function computeLedger(d: Debate): Ledger;
 export function verdictBand(margin: number): Band;
-export function summarize(totals: { A: number; B: number }): {
-  leader: Side | null; winner: Side | null; margin: number; band: Band;
+export function summarize(totals: { A: number; B: number }, burden?: Side | 'shared'): {
+  leader: Side | null; winner: Side | null; margin: number; band: Band; byBurden: boolean;
 };
 export function generateRationale(
   d: Debate, ledger: Ledger, totals: { A: number; B: number },

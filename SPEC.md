@@ -96,7 +96,7 @@ canonical version.
 | `assertion` | string | One atomic statement |
 | `grounds` | string | Evidence or premises offered |
 | `warrant` | string | The inference license connecting grounds to assertion |
-| `evidence` | array of `{source, url, tier}` | Tier from section 5 |
+| `evidence` | array of `{source, url, tier, tierVerified?, tierVerifiedNote?}` | Tier from section 5. `tierVerified` is set only by an arbiter, via the verification action |
 | `qualifier` | `certain \| probable \| plausible` | Required |
 | `status` | see 3.4 | |
 | `relevance` | 0.25, 0.5, 0.75, 1.0, or null | Assigned by an arbiter |
@@ -116,7 +116,23 @@ unstated inference rule rather than in the facts.
 | `demoted` | Removed from the main branch by an upheld challenge |
 | `rejected` | Declined at merge review |
 
-### 3.5 Challenge
+### 3.5 Steelman
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `text` | string | The restatement, written by the opposing side |
+| `author`, `side` | string | The writer and the writer's declared side |
+| `status` | `none \| submitted \| returned \| certified` | |
+| `note` | string | The restated side's objection, when returned |
+| `certifiedBy` | `"arbiter"`, optional | Present only when the arbiter certified over an objection |
+| `arbiterReason` | string, optional | Required when `certifiedBy` is set |
+
+Certification is ordinarily given by the restated side, in its own name. An
+implementation MUST NOT record a certification the restated side did not give. After at
+least one revision cycle, an arbiter MAY certify over a standing objection; the objection
+and the arbiter's reason MUST both remain on the record.
+
+### 3.6 Challenge
 
 | Field | Type | Notes |
 | --- | --- | --- |
@@ -130,7 +146,7 @@ unstated inference rule rather than in the facts.
 | `rationale` | string | Written reason, required |
 | `appealId` | appeal id or null | Set when filed during an appeal review |
 
-### 3.6 Verdict
+### 3.7 Verdict
 
 Verdicts are append only. Issuing a new verdict MUST NOT modify an earlier one.
 
@@ -143,6 +159,7 @@ Verdicts are append only. Issuing a new verdict MUST NOT modify an earlier one.
 | `band` | `{key, label}` |
 | `rationale` | string |
 | `ledger` | frozen array of ledger rows |
+| `byBurden` | boolean, true when an unresolved ledger was decided by the burden |
 | `viaAppealId` | appeal id or null |
 
 ## 4. Roles
@@ -182,7 +199,10 @@ Because E is the dominant factor in the rubric, an unchecked tier is the largest
 participant can pull, and challenges are too scarce to be the only check: in practice most
 citations are never challenged by anyone. A citation therefore scores at no more than T3
 until an arbiter records verification by setting `tierVerified` on it, which SHOULD happen
-at merge review, where the arbiter is already writing a rationale.
+at merge review, where the arbiter is already writing a rationale. Verification means
+retrieval: an arbiter MUST NOT record verification of a source it has not retrieved and
+read. A verification produced by judging the citation string alone is not a verification,
+it is the theater this rule exists to end.
 
 ## 6. Phases
 
@@ -198,6 +218,11 @@ unmet.
 | `adjudication` | Relevance weights assigned | Every canonical version has a relevance weight |
 | `verdict` | Verdict issued from the ledger | A verdict exists |
 | `closed` | Record final | Terminal. Reopens only via an admitted appeal |
+
+An implementation MAY provide a forced transition for seeding fixtures or resuming
+partial documents, but a forced transition MUST be logged under a distinct action from a
+checked advance, so a reader of the record can tell which prerequisites were verified and
+which were skipped.
 
 `appeal-review` is a phase but is not a member of the ordered sequence. It is entered
 only by admitting an appeal and exits only by concluding one. An implementation MUST
@@ -342,9 +367,11 @@ unresolved.
 **The burden rule.** `burden`, declared at framing, decides an unresolved ledger. When it
 is `A` or `B`, an unresolved margin resolves for the other side, and the verdict MUST
 record `byBurden: true`. When it is `shared`, an unresolved margin declares no winner, as
-in version 1.0. A side that must prove a proposition and fails to separate itself from
-its opponent has not proved it, and recording a burden that changes nothing is worse than
-not recording one.
+in version 1.0. The rule covers the whole unresolved band, exact ties and empty ledgers
+included: a side that must prove a proposition and puts nothing on the ledger has proved
+nothing, which is the clearest possible case of not proven. A side that must prove a
+proposition and fails to separate itself from its opponent has not proved it, and
+recording a burden that changes nothing is worse than not recording one.
 
 An implementation using binary floating point MUST round the margin before comparing
 it against a threshold, to at least nine decimal places. Margins are computed from
@@ -363,6 +390,11 @@ hedging cheaper than the demotion risk that overclaiming carries under G12.
 A candidate MUST merge only when its merit strictly exceeds the incumbent's. Equal
 merit MUST be refused: "merge on merit" has to mean something a challenger has to
 clear.
+
+Because an unverified tier scores at no better than T3, tier verification MUST be
+available before the merge decision that depends on it: a candidate that improves a claim
+by citing a stronger source cannot beat its incumbent until the source is confirmed.
+Verify first, then compare.
 
 On merge, the incumbent becomes `superseded`. A candidate with no assigned relevance
 MUST inherit the incumbent's, so that improving a claim does not silently discard a

@@ -86,3 +86,18 @@ participant could win a debate they should lose. Nothing in the data model is re
 
 - `npm test` works again on Node 22 and later. `node --test test/` now resolves the
   directory as a module.
+
+## 1.1.1
+
+Loose ends from a second adversarial pass, this time over the 1.1 release itself.
+
+- The spec grew what the release notes had and the normative text did not: the Steelman
+  shape, including arbiter certification over a recorded objection; `tierVerified` on the
+  citation shape and `byBurden` on the verdict; verification defined as retrieval, not
+  judgment of the citation string; verify-then-merge ordering; the burden rule stated to
+  cover ties and empty ledgers; and a requirement that forced phase transitions be logged
+  distinguishably from checked ones.
+- `newDebate` clamps a claim budget below one to null. A budget of zero would score
+  nobody and hand every debate to the burden default.
+- `summarize`'s type declaration finally matches its 1.1 signature: it takes the burden
+  and returns `byBurden`.

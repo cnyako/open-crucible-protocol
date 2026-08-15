@@ -1,6 +1,6 @@
 {
   "name": "open-crucible-protocol",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A dependency-free engine for the Crucible Protocol: a structured, asynchronous, version-controlled debate format in which evidence and argument quality decide the outcome.",
   "type": "module",
   "license": "Apache-2.0",

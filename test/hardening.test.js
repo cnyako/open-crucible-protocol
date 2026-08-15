@@ -232,3 +232,14 @@ test('a document with no claim budget scores every canonical claim, as in 1.0', 
   assert.ok(rows.filter(r => r.side === 'A').every(r => r.scoring));
   assert.equal(totals.A, rows.filter(r => r.side === 'A').reduce((n, r) => n + r.merit, 0));
 });
+
+test('a nonsense claim budget is treated as no budget, not as a trap', () => {
+  // A budget below one would score nobody, resolve every debate by burden
+  // default, and look like a scoring bug rather than a bad input.
+  for (const bad of [0, -3, 2.5, NaN]) {
+    const d = debate({ claimBudget: bad });
+    assert.equal(d.claimBudget, null, `claimBudget ${bad} must clamp to null`);
+  }
+  assert.equal(debate({ claimBudget: 3 }).claimBudget, 3);
+  assert.equal(debate({}).claimBudget, null);
+});

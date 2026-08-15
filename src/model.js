@@ -45,7 +45,12 @@ export function newDebate(env, { resolution, posA, posB, burden, claimBudget }) 
     // side that never agreed to carry it.
     burden: burden || 'shared',
     /** Claims each side may score. Null keeps the 1.0 rule of scoring everything. */
-    claimBudget: claimBudget === undefined ? DEFAULT_CLAIM_BUDGET : claimBudget,
+    // A budget below one would score nobody and resolve every debate by
+    // default; a nonsense budget is treated as no budget rather than as a
+    // trap. The spec requires a positive integer or null.
+    claimBudget:
+      claimBudget === undefined ? DEFAULT_CLAIM_BUDGET
+      : (Number.isInteger(claimBudget) && claimBudget >= 1 ? claimBudget : null),
     definitions: [],
     phase: 'framing',
     threads: [],
