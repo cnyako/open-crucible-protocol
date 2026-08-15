@@ -20,16 +20,23 @@ test('first merge needs no incumbent and sets the canonical version', () => {
   assert.equal(thread.canonicalId, v.id);
 });
 
-test('a stronger candidate supersedes the incumbent', () => {
+test('a stronger candidate supersedes the incumbent, once its tier is verified', () => {
   const { P, d, thread } = setup();
   const weak = P.addVersion(d, thread, claim({ evidence: tier('T3') }));
   P.mergeVersion(d, thread, weak.id, 'first', 'arbiter');
   const strong = P.addVersion(d, thread, claim({ evidence: tier('T1') }));
 
+  // 1.1: an asserted T1 scores at T3 until an arbiter checks the source, so the
+  // upgrade is not yet an improvement and must not merge.
+  const refused = P.mergeVersion(d, thread, strong.id, 'stronger', 'arbiter');
+  assert.equal(refused.code, 'MERGE_NOT_ON_MERIT');
+
+  assert.equal(P.verifyTier(d, thread, strong.id, 0, 'Checked: systematic review.', 'arbiter'), null);
   assert.equal(P.mergeVersion(d, thread, strong.id, 'stronger', 'arbiter'), null);
   assert.equal(weak.status, 'superseded');
   assert.equal(strong.status, 'merged');
   assert.equal(thread.canonicalId, strong.id);
+  assert.ok(d.log.some(e => e.action === 'tier-verified'));
 });
 
 test('a weaker candidate is refused and leaves the incumbent untouched', () => {

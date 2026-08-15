@@ -50,6 +50,33 @@ export function mergeVersion(env, d, thread, versionId, rationale, actor) {
   return null;
 }
 
+/**
+ * Records that an arbiter checked a citation and that it is the tier it claims.
+ *
+ * Tier verification has to be a protocol action rather than a field a host sets
+ * quietly, for the same reason every other arbiter decision is recorded: E is
+ * the dominant factor in the rubric, so this is the single most consequential
+ * judgment an arbiter makes about a claim, and a reader needs to see who made it.
+ *
+ * It also has to be available before a merge decision. An unverified tier above
+ * T3 scores at T3, so a candidate that improves a claim by finding a better
+ * source cannot beat its incumbent until someone confirms the source is what it
+ * says. Verify first, then merge.
+ */
+export function verifyTier(env, d, thread, versionId, citationIndex, note, actor) {
+  const v = thread.versions.find(x => x.id === versionId);
+  if (!v) return err(ERR.VERSION_NOT_FOUND, 'No such version in this thread.');
+
+  const citation = (v.evidence || [])[citationIndex];
+  if (!citation) return err(ERR.CITATION_NOT_FOUND, 'No citation at that index.');
+
+  citation.tierVerified = true;
+  citation.tierVerifiedNote = note || '';
+  addLog(env, d, actor, null, 'tier-verified',
+    `${thread.title} v${v.num} citation ${citationIndex + 1} confirmed at ${citation.tier}`);
+  return null;
+}
+
 /** Declines a candidate. The version stays in history with its rationale attached. */
 export function rejectVersion(env, d, thread, versionId, rationale, actor) {
   const v = thread.versions.find(x => x.id === versionId);
@@ -68,6 +95,19 @@ export function rejectVersion(env, d, thread, versionId, rationale, actor) {
  * it, so a later cycle can tell its own open items from historical ones.
  */
 export function fileChallenge(env, d, data) {
+  /**
+   * A challenge runs against the opposing side. SPEC 4 always said so and
+   * nothing enforced it, which left the survival factor farmable: file a weak
+   * challenge at your own claim, have it dismissed, bank the multiplier.
+   * Scoring now ignores same-side dismissals as well, so this is the second of
+   * two locks rather than the only one.
+   */
+  const target = d.threads.find(x => x.id === data.threadId);
+  if (target && data.side && target.side === data.side) {
+    return err(ERR.CHALLENGE_SAME_SIDE,
+      'A challenge must be filed against the opposing side. A side cannot challenge its own claim.');
+  }
+
   const c = {
     id: env.newId('chl'),
     threadId: data.threadId,
@@ -143,6 +183,30 @@ export function submitSteelman(env, d, ofSide, text, author, side) {
 export function certifySteelman(env, d, ofSide, actor, side) {
   d.steelmans[ofSide].status = 'certified';
   addLog(env, d, actor, side, 'steelman-certified', `side-${ofSide} case`);
+  return null;
+}
+
+/**
+ * An arbiter certifies a restatement the restated side will not certify.
+ *
+ * Certification is a phase prerequisite, which made it a veto: a side with a
+ * losing case could decline forever and deny its opponent a verdict. Bounding it
+ * costs little, because the objection is recorded and the ideological Turing
+ * test still has to have been attempted. `reason` is required and goes on the
+ * record next to whatever the refusing side said.
+ */
+export function arbiterCertifySteelman(env, d, ofSide, reason, actor) {
+  const s = d.steelmans[ofSide];
+  if (s.status === 'none') {
+    return err(ERR.STEELMAN_NOT_SUBMITTED,
+      'No restatement has been submitted for this side, so there is nothing to certify.');
+  }
+  if (s.status === 'certified') return null;
+  s.status = 'certified';
+  s.certifiedBy = 'arbiter';
+  s.arbiterReason = reason || '';
+  addLog(env, d, actor, null, 'steelman-arbiter-certified',
+    `side-${ofSide} case: ${String(reason || '').slice(0, 80)}`);
   return null;
 }
 

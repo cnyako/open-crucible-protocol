@@ -6,10 +6,14 @@ import {
 import { makeProtocol, makeDebate, seedMergedClaim, claim } from './helpers.js';
 
 const ev = (...tiers) => tiers.map((tier, i) => ({ source: `S${i}`, url: 'https://example.org', tier }));
+/** The same citations, with an arbiter's tier verification recorded. */
+const evOk = (...tiers) => ev(...tiers).map(c => ({ ...c, tierVerified: true }));
 
 test('evidenceBase: claim types that do not take citations', () => {
-  assert.equal(evidenceBase({ type: 'logical', evidence: [] }), 3);
-  assert.equal(evidenceBase({ type: 'definitional', evidence: [] }), 2);
+  // 1.1 lowered these so that an unsourced inference cannot price level with a
+  // sourced finding. See SPEC 9 and test/hardening.test.js.
+  assert.equal(evidenceBase({ type: 'logical', evidence: [] }), 2);
+  assert.equal(evidenceBase({ type: 'definitional', evidence: [] }), 1);
 });
 
 test('evidenceBase: empirical with no citation scores zero', () => {
@@ -22,11 +26,15 @@ test('evidenceBase: tolerates a missing evidence field', () => {
 
 test('evidenceBase: single citation uses its tier weight', () => {
   assert.equal(evidenceBase({ type: 'empirical', evidence: ev('T3') }), 3);
-  assert.equal(evidenceBase({ type: 'empirical', evidence: ev('T1') }), 5);
+  // 1.1: an unverified tier above T3 scores at T3 until an arbiter checks it.
+  assert.equal(evidenceBase({ type: 'empirical', evidence: ev('T1') }), 3);
+  assert.equal(evidenceBase({ type: 'empirical', evidence: evOk('T1') }), 5);
 });
 
 test('evidenceBase: corroboration adds 0.5 per extra citation', () => {
-  assert.equal(evidenceBase({ type: 'empirical', evidence: ev('T1', 'T2') }), 5.5);
+  assert.equal(evidenceBase({ type: 'empirical', evidence: evOk('T1', 'T2') }), 5.5);
+  // Unverified, both cap at T3, so the corroboration bonus is all that is left.
+  assert.equal(evidenceBase({ type: 'empirical', evidence: ev('T1', 'T2') }), 3.5);
 });
 
 test('evidenceBase: the corroboration bonus is capped at +1.0', () => {

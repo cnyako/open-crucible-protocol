@@ -1,4 +1,4 @@
-# The Crucible Protocol, version 1.0
+# The Crucible Protocol, version 1.1
 
 A normative specification for implementers.
 
@@ -57,7 +57,8 @@ on state held elsewhere.
 | `id` | string | Unique |
 | `resolution` | string | One decidable proposition |
 | `positions` | `{A: string, B: string}` | Exactly two |
-| `burden` | `"A" \| "B" \| "shared"` | Declared at framing |
+| `burden` | `"A" \| "B" \| "shared"` | Declared at framing. Decides an unresolved ledger, section 9 |
+| `claimBudget` | positive integer or null | Claims each side may score, section 9 |
 | `definitions` | array | Agreed meanings of key terms |
 | `phase` | phase key | Section 6 |
 | `threads` | array of Thread | Claim threads for both sides |
@@ -177,6 +178,12 @@ Tier assignment is part of a submission and is itself challengeable on the
 evidence-validity ground. An implementation MUST NOT treat a tier as settled merely
 because the submitter asserted it.
 
+Because E is the dominant factor in the rubric, an unchecked tier is the largest lever a
+participant can pull, and challenges are too scarce to be the only check: in practice most
+citations are never challenged by anyone. A citation therefore scores at no more than T3
+until an arbiter records verification by setting `tierVerified` on it, which SHOULD happen
+at merge review, where the arbiter is already writing a rationale.
+
 ## 6. Phases
 
 Phases advance in order. An arbiter MUST NOT advance a phase whose prerequisites are
@@ -187,7 +194,7 @@ unmet.
 | `framing` | Resolution, positions, definitions, burden | Resolution and both positions set |
 | `construction` | Open contribution: threads, versions, merges | Each side has at least one canonical version, and no candidate awaits a decision |
 | `challenge` | Challenges, responses, resolutions, repairs | No unresolved challenge, and no candidate awaits a decision |
-| `steelman` | Each side restates the other, the restated side certifies | Both steelmans certified |
+| `steelman` | Each side restates the other, the restated side certifies | Both steelmans certified or arbiter-certified |
 | `adjudication` | Relevance weights assigned | Every canonical version has a relevance weight |
 | `verdict` | Verdict issued from the ledger | A verdict exists |
 | `closed` | Record final | Terminal. Reopens only via an admitted appeal |
@@ -200,6 +207,11 @@ Relevance weights MUST be assigned before totals are revealed to the arbiter. Th
 is the same pre-commitment principle that registered reports apply to publication.
 
 ## 7. Challenges
+
+A challenge MUST be filed against the opposing side. An implementation MUST refuse a
+challenge whose declared side equals the side of the targeted thread, and MUST NOT count
+a same-side dismissal toward survival. Without both, the survival factor is farmable by
+two cooperating participants on opposite declared sides.
 
 A challenge MUST cite exactly one of these grounds. No other objection is admissible.
 
@@ -276,25 +288,41 @@ For each canonical version:
 
 ```
 E = evidence base
-    empirical:     max tier weight among citations
+    empirical:     max effective tier weight among citations
                    + 0.5 per additional citation, capped at +1.0
                    0 when there are no citations
-    logical:       3
-    definitional:  2
+    logical:       2
+    definitional:  1
+
+    A citation's effective tier weight is its claimed weight when an arbiter has
+    recorded verification of the source, and min(claimed, T3) otherwise.
 
 R = relevance      0.25 | 0.5 | 0.75 | 1.0, arbiter-assigned
                    an unassigned relevance is treated as 1.0 for merge comparison
 
-S = survival       1 + 0.1 x (challenges dismissed against this version)
+S = survival       min(1.3, 1 + 0.1 x (opposing-side challenges dismissed
+                   against this version))
 
 Q = qualifier      certain 1.0 | probable 0.9 | plausible 0.75
 
 merit = E x R x S x Q
 ```
 
-A side's total is the sum of merit over its canonical versions. Versions that are
-not canonical, including demoted ones, do not appear in the ledger and contribute
-nothing.
+A side's total is the sum of merit over its canonical versions, subject to the claim
+budget below. Versions that are not canonical, including demoted ones, do not appear in
+the ledger and contribute nothing.
+
+**Claim budget.** A debate MAY declare `claimBudget`, a positive integer, at framing. It
+MUST be identical for both sides. When set, each side scores only its `claimBudget`
+highest-merit canonical versions; the remainder MUST appear in the ledger marked as not
+scoring, with their merit intact, and MUST NOT be added to the total. When unset, every
+canonical version scores, which is the version 1.0 rule.
+
+A budget exists because totals are sums. Without one, the winning strategy is volume:
+eighteen thin claims outscore three strong ones, and padding the leading side widens the
+margin band as well. That is the same failure the design commitments attribute to timed
+formats, arriving through the scoring rule instead of the clock. An implementation
+SHOULD set a budget.
 
 ```
 margin = (higher total - lower total) / higher total
@@ -302,7 +330,7 @@ margin = (higher total - lower total) / higher total
 
 | Margin | Band |
 | --- | --- |
-| less than 0.10 | `unresolved`, no winner declared |
+| less than 0.10 | `unresolved`, see the burden rule below |
 | 0.10 to less than 0.25 | `balance`, winner on balance of evidence |
 | 0.25 to less than 0.50 | `clear` |
 | 0.50 and above | `decisive` |
@@ -310,6 +338,13 @@ margin = (higher total - lower total) / higher total
 Comparisons are strictly less than each threshold, so a margin of exactly 0.10 is
 `balance` and exactly 0.25 is `clear`. An empty ledger yields a margin of 0 and is
 unresolved.
+
+**The burden rule.** `burden`, declared at framing, decides an unresolved ledger. When it
+is `A` or `B`, an unresolved margin resolves for the other side, and the verdict MUST
+record `byBurden: true`. When it is `shared`, an unresolved margin declares no winner, as
+in version 1.0. A side that must prove a proposition and fails to separate itself from
+its opponent has not proved it, and recording a burden that changes nothing is worse than
+not recording one.
 
 An implementation using binary floating point MUST round the margin before comparing
 it against a threshold, to at least nine decimal places. Margins are computed from
@@ -373,7 +408,11 @@ An implementation conforms if:
 
 1. It rejects every submission that violates G1 to G14, with the rule identified.
 2. It computes merit, totals, margin and band exactly as section 9 defines, including
-   the corroboration cap and the strict band boundaries.
+   the corroboration cap, the survival cap, the effective tier rule, the claim budget and
+   the strict band boundaries.
+2a. It refuses a challenge filed against the filer's own side, and excludes same-side
+   dismissals from survival.
+2b. It resolves an unresolved ledger by the declared burden, and records `byBurden`.
 3. It refuses a merge whose merit does not strictly exceed the incumbent's.
 4. An upheld challenge demotes the targeted version only when that version is
    canonical, and empties the thread.

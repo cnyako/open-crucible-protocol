@@ -66,6 +66,26 @@ export const VERDICT_BANDS = Object.freeze([
   { key: 'decisive', max: Infinity, label: 'Decisive winner' }
 ]);
 
+/**
+ * Ceiling on the survival multiplier, reached at three dismissed challenges.
+ *
+ * Survival is meant to record that a claim held up under scrutiny, not to pay a
+ * bounty per attack survived. Uncapped it rewards a claim for attracting
+ * challenges, which a determined pair of participants can arrange.
+ */
+export const SURVIVAL_CAP = 1.3;
+
+/**
+ * How many claims a side may score, when a debate declares a budget.
+ *
+ * Totals are sums, so without a budget the winning strategy is volume: eighteen
+ * thin claims beat three strong ones, and padding the leading side also widens
+ * the margin band. A budget scores each side's best N claims and leaves the rest
+ * in the record, marked as not scoring. Null means no budget, which is the
+ * pre-1.1 behaviour and is retained for documents written under it.
+ */
+export const DEFAULT_CLAIM_BUDGET = null;
+
 /** Version lifecycle. */
 export const VERSION_STATUS = Object.freeze({
   CANDIDATE: 'candidate',

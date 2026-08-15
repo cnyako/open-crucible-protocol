@@ -17,7 +17,12 @@ export type ChallengeGround =
 export type AppealGround = 'A1' | 'A2' | 'A3';
 export type BandKey = 'unresolved' | 'balance' | 'clear' | 'decisive';
 
-export interface Citation { source: string; url?: string; tier: Tier }
+export interface Citation {
+  source: string; url?: string; tier: Tier;
+  /** Set by an arbiter via `verifyTier`. Until then the tier scores at no better than T3. */
+  tierVerified?: boolean;
+  tierVerifiedNote?: string;
+}
 
 export interface ClaimVersion {
   id: string; threadId: string; num: number; parentId: string | null;
@@ -64,6 +69,8 @@ export interface Verdict {
   n: number; issuedAt: number; winner: Side | null;
   totals: { A: number; B: number }; margin: number; band: Band;
   rationale: string; ledger: LedgerRow[]; viaAppealId: string | null;
+  /** True when the ledger was unresolved and the declared burden decided it. */
+  byBurden?: boolean;
 }
 
 export interface Appeal {
@@ -81,7 +88,10 @@ export interface LogEntry {
 export interface Debate {
   schemaVersion: number; id: string; createdAt: number;
   resolution: string; positions: { A: string; B: string };
-  burden: Side | 'shared'; definitions: Definition[];
+  burden: Side | 'shared';
+  /** Claims each side may score. Null scores every canonical claim, as in 1.0. */
+  claimBudget: number | null;
+  definitions: Definition[];
   phase: Phase | 'appeal-review';
   threads: ClaimThread[]; challenges: Challenge[];
   steelmans: { A: Steelman; B: Steelman };
@@ -121,6 +131,8 @@ export interface Env { now(): number; newId(prefix: string): string }
 
 export interface NewDebateInput {
   resolution: string; posA: string; posB: string; burden?: Side | 'shared';
+  /** Claims each side may score. Omit to score every canonical claim, as in 1.0. */
+  claimBudget?: number | null;
 }
 
 export interface VersionInput {
@@ -157,11 +169,15 @@ export interface Protocol {
   addDefinition(d: Debate, def: Omit<Definition, never>): Definition;
   mergeVersion(d: Debate, thread: ClaimThread, versionId: string, rationale: string, actor: string): Refusal;
   rejectVersion(d: Debate, thread: ClaimThread, versionId: string, rationale: string, actor: string): Refusal;
+  /** Records that an arbiter checked a citation. An unverified tier scores at no better than T3. */
+  verifyTier(d: Debate, thread: ClaimThread, versionId: string, citationIndex: number, note: string, actor: string): Refusal;
   fileChallenge(d: Debate, data: ChallengeInput): Challenge;
   respondChallenge(d: Debate, c: Challenge, text: string, author: string, side: Side): Refusal;
   resolveChallenge(d: Debate, c: Challenge, resolution: 'upheld' | 'dismissed', rationale: string, actor: string): Refusal;
   submitSteelman(d: Debate, ofSide: Side, text: string, author: string, side: Side): Refusal;
   certifySteelman(d: Debate, ofSide: Side, actor: string, side: Side): Refusal;
+  /** Certifies a restatement the restated side will not certify, with a recorded reason. */
+  arbiterCertifySteelman(d: Debate, ofSide: Side, reason: string, actor: string): Refusal;
   returnSteelman(d: Debate, ofSide: Side, note: string, actor: string, side: Side): Refusal;
   advancePhase(d: Debate, actor: string): Refusal;
   closeDebate(d: Debate, actor: string): Refusal;

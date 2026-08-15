@@ -50,3 +50,39 @@ Planned, in rough priority order:
 - **Recursion support**: first-class linking of a challenge to the sub-thread that
   resolves it, currently described in the spec but left to hosts.
 - **Appeal windows**: optional time bounds on filing, with A3 exempt.
+
+## 1.1.0
+
+Hardening release, from an adversarial audit of 1.0. Every item below closes a way a
+participant could win a debate they should lose. Nothing in the data model is removed and
+1.0 documents load unchanged.
+
+### Scoring
+
+- **Claim budget.** A debate may declare `claimBudget`. Each side scores only its best N
+  canonical claims; the rest stay in the ledger marked `scoring: false` with their merit
+  intact. Totals are sums, so without a budget the winning strategy was volume.
+- **Unsourced inference is cheaper.** `logical` drops from 3 to 2, `definitional` from 2
+  to 1. A claim citing nothing no longer prices level with one citing a peer-reviewed study.
+- **Effective tier.** A citation above T3 scores at T3 until an arbiter records
+  verification with the new `verifyTier` writer. E is the dominant factor, so an unchecked
+  tier was the largest lever available to a submitter.
+- **Survival is capped at 1.3 and counts only opposing-side challenges.** Same-side
+  dismissals no longer raise it.
+- **The burden decides an unresolved ledger.** `burden` was recorded and ignored. An
+  unresolved margin now resolves for the side that does not carry it, and the verdict
+  records `byBurden`. The default is now `shared` rather than `A`, so the rule only applies
+  where a burden was declared deliberately.
+
+### Protocol
+
+- `fileChallenge` refuses a challenge filed against the filer's own side, returning
+  `CHALLENGE_SAME_SIDE`.
+- `arbiterCertifySteelman` lets an arbiter certify a restatement a side will not, with a
+  recorded reason. Certification was a veto on reaching a verdict.
+- `verifyTier` records that an arbiter checked a citation, with a note, in the log.
+
+### Fixes
+
+- `npm test` works again on Node 22 and later. `node --test test/` now resolves the
+  directory as a module.

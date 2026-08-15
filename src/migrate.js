@@ -29,7 +29,9 @@ export function migrate(d) {
   if (!d.steelmans.B) d.steelmans.B = emptySteelman();
   if (d.activeAppealId === undefined) d.activeAppealId = null;
   if (!d.phase) d.phase = 'framing';
-  if (!d.burden) d.burden = 'A';
+  if (!d.burden) d.burden = 'shared';
+  // 1.1. Null keeps the 1.0 rule for documents written before budgets existed.
+  if (d.claimBudget === undefined) d.claimBudget = null;
 
   for (const t of d.threads) {
     if (!Array.isArray(t.versions)) t.versions = [];

@@ -56,8 +56,12 @@ export function buildSampleDebate(P) {
     ],
     qualifier: 'probable', relevance: 1.0
   });
+  // 1.1: a tier above T3 scores at T3 until an arbiter checks the source, so
+  // verification comes before the merge decision that depends on it.
+  P.verifyTier(d, tA1, a1v2.id, 0, 'Retrieved: meta-analysis, methodology section reports pooled estimates across independent teams.', 'arbiter');
+  P.verifyTier(d, tA1, a1v2.id, 1, 'Retrieved: multi-team cohort, sample and window reported.', 'arbiter');
   P.mergeVersion(d, tA1, a1v2.id,
-    'Candidate raises the evidence base from a single T3 study to a T1 meta-analysis plus an independent T2 cohort. Merit exceeds the incumbent.',
+    'Candidate raises the evidence base from a single T3 study to a verified T1 meta-analysis plus an independent verified T2 cohort. Merit exceeds the incumbent.',
     'arbiter');
 
   // Side A, thread 2.
@@ -181,8 +185,11 @@ export function runSampleAppeal(P, d, threadB) {
     ],
     qualifier: 'probable', relevance: 0.75
   });
+  // The appeal was admitted on the strength of this source, so the arbiter has
+  // already read it. Recording the check is what makes it score at its tier.
+  P.verifyTier(d, threadB, repaired.id, 0, 'Retrieved during appeal review: cohort study, independent data, post-closure.', 'arbiter');
   P.mergeVersion(d, threadB, repaired.id,
-    'Appeal-cycle version adds the admitted source to the existing citation, raising the evidence base.',
+    'Appeal-cycle version adds the admitted and verified source to the existing citation, raising the evidence base.',
     'arbiter');
   P.concludeAppealReview(d, 'arbiter');
   return appeal;

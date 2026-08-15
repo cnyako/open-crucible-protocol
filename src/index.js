@@ -81,6 +81,7 @@ export function createProtocol(env) {
     // Merging and challenging.
     mergeVersion: bind(transitions.mergeVersion),
     rejectVersion: bind(transitions.rejectVersion),
+    verifyTier: bind(transitions.verifyTier),
     fileChallenge: bind(transitions.fileChallenge),
     respondChallenge: bind(transitions.respondChallenge),
     resolveChallenge: bind(transitions.resolveChallenge),
@@ -88,6 +89,7 @@ export function createProtocol(env) {
     // The steelman gate.
     submitSteelman: bind(transitions.submitSteelman),
     certifySteelman: bind(transitions.certifySteelman),
+    arbiterCertifySteelman: bind(transitions.arbiterCertifySteelman),
     returnSteelman: bind(transitions.returnSteelman),
 
     // Phases and verdict.

@@ -19,7 +19,7 @@ import { addLog } from './model.js';
 export function issueVerdict(env, d, viaAppealId, options = {}) {
   const ledger = computeLedger(d);
   const { totals } = ledger;
-  const { winner, margin, band } = summarize(totals);
+  const { winner, margin, band, byBurden } = summarize(totals, d.burden);
   const writeRationale = options.rationale || generateRationale;
 
   const v = {
@@ -31,6 +31,8 @@ export function issueVerdict(env, d, viaAppealId, options = {}) {
     band,
     rationale: writeRationale(d, ledger, totals, winner, margin, band),
     ledger: ledger.rows,
+    /** True when the ledger was inconclusive and the declared burden decided it. */
+    byBurden: Boolean(byBurden),
     viaAppealId: viaAppealId || null
   };
   d.verdicts.push(v);

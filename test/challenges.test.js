@@ -30,6 +30,8 @@ test('an upheld challenge against a superseded version leaves the main branch al
   const v1 = P.addVersion(d, thread, claim({ evidence: [{ source: 'S', url: 'u', tier: 'T3' }] }));
   P.mergeVersion(d, thread, v1.id, 'first', 'arbiter');
   const v2 = P.addVersion(d, thread, claim({ evidence: [{ source: 'S', url: 'u', tier: 'T1' }] }));
+  // 1.1: the upgrade only outscores the incumbent once the tier is verified.
+  P.verifyTier(d, thread, v2.id, 0, 'Checked.', 'arbiter');
   P.mergeVersion(d, thread, v2.id, 'stronger', 'arbiter');
 
   const c = challengeOn(P, d, thread, v1);

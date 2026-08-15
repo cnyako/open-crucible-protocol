@@ -9,7 +9,7 @@
  * The document is the record. There is no state elsewhere.
  */
 
-import { SCHEMA_VERSION } from './constants.js';
+import { SCHEMA_VERSION, DEFAULT_CLAIM_BUDGET } from './constants.js';
 
 export function emptySteelman() {
   return { text: '', author: '', side: null, status: 'none', note: '', ts: null };
@@ -30,16 +30,22 @@ export function addLog(env, d, actor, side, action, detail) {
 /**
  * Creates a debate in the framing phase.
  *
- * @param {{resolution:string, posA:string, posB:string, burden?:('A'|'B'|'shared')}} input
+ * @param {{resolution:string, posA:string, posB:string, burden?:('A'|'B'|'shared'),
+ *          claimBudget?:number|null}} input
  */
-export function newDebate(env, { resolution, posA, posB, burden }) {
+export function newDebate(env, { resolution, posA, posB, burden, claimBudget }) {
   const d = {
     schemaVersion: SCHEMA_VERSION,
     id: env.newId('deb'),
     createdAt: env.now(),
     resolution,
     positions: { A: posA, B: posB },
-    burden: burden || 'A',
+    // 'shared' by default. The burden now decides an unresolved ledger, so it
+    // must be declared deliberately at framing rather than defaulted onto a
+    // side that never agreed to carry it.
+    burden: burden || 'shared',
+    /** Claims each side may score. Null keeps the 1.0 rule of scoring everything. */
+    claimBudget: claimBudget === undefined ? DEFAULT_CLAIM_BUDGET : claimBudget,
     definitions: [],
     phase: 'framing',
     threads: [],
